@@ -1,24 +1,27 @@
 const logger = require("@turkerssh/logger");
 const { readdirSync } = require("fs");
-const allevents = [];
 
 module.exports = (client) => {
-  let amount = 0;
-  for (const file of readdirSync("./src/events").filter((f) =>
-    f.endsWith(".js"),
-  )) {
-    try {
-      const module = require("../events/" + file);
-      let eventName = file.split(".")[0];
-      allevents.push(eventName);
-      client.on(eventName, module.bind(null, client));
-      amount++;
-    } catch (e) {
-      logger.error({
-        type: "events",
-        message: `Error while loading event ${file}`,
-      });
-      console.log(e);
+    const files = readdirSync("./src/events")
+        .filter(file => file.endsWith(".js"));
+
+    for (const file of files) {
+        try {
+            const setup = require(`../events/${file}`);
+
+            // Each event module registers its own listeners.
+            setup(client);
+
+            logger.success({
+                type: "events",
+                message: `Loaded ${file}`
+            });
+        } catch (error) {
+            logger.error({
+                type: "events",
+                message: `Error loading ${file}: ${error.message}`
+            });
+            console.error(error);
+        }
     }
-  }
 };
